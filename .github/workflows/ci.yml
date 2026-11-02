@@ -1,0 +1,40 @@
+name: Prasasti CI — Columnar Time-Series Engine Verification
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  verify:
+    name: Test, Clippy, Durability Audit & 1M-Row SLA
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Run Clippy linter (zero warnings gate)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run unit and durability integration tests
+        run: cargo test --workspace --all-targets
+
+      - name: Run 4-Stage Durability & Analytical Self-Audit (Release)
+        run: cargo run --release -p prasasti-cli -- audit-self
+
+      - name: Run 1,000,000-Row Write & Vectorized Query SLA Benchmark (Release)
+        run: cargo run --release -p prasasti-cli -- bench --rows 1000000

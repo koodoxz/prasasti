@@ -225,6 +225,7 @@ dependencies = [
  "prasasti-storage",
  "prasasti-wal",
  "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
 ]
