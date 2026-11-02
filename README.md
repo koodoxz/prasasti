@@ -113,3 +113,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## License
 
 Dual-licensed under **MIT** OR **Apache-2.0** (Open-Core Community Edition).
+

@@ -10,3 +10,4 @@ description = "Columnar Structure-of-Arrays (SoA) MemTable and zero-allocation s
 prasasti-wal.workspace = true
 thiserror.workspace = true
 serde.workspace = true
+

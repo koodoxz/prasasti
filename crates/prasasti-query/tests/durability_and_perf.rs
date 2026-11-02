@@ -83,3 +83,4 @@ fn integration_crash_recovery_zone_pruning_and_timesfm_pipeline() {
     assert_eq!(patches.len(), 2);
     assert_eq!(patches[0].len(), 5);
 }
+

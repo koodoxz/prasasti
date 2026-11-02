@@ -25,6 +25,45 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Ingest a single event or tick into the engine
+    Ingest {
+        /// Path to the Prasasti data directory
+        #[arg(long)]
+        dir: PathBuf,
+        /// Asset symbol (e.g. XAUUSD, BTCUSD)
+        #[arg(long)]
+        symbol: String,
+        /// Unix timestamp in nanoseconds (optional, defaults to current UTC time)
+        #[arg(long)]
+        ts_ns: Option<i64>,
+        /// Metric or price value
+        #[arg(long)]
+        value: f64,
+        /// Weight or volume
+        #[arg(long, default_value_t = 1.0)]
+        weight: f64,
+        /// Flags bitmask
+        #[arg(long, default_value_t = 0)]
+        flags: u32,
+    },
+    /// Extract contiguous float patches for Google TimesFM 2.5 / Kronos ingestion
+    ExtractPatches {
+        /// Path to the Prasasti data directory
+        #[arg(long)]
+        dir: PathBuf,
+        /// Asset symbol
+        #[arg(long)]
+        symbol: String,
+        /// Patch window size (default: 32)
+        #[arg(long, default_value_t = 32)]
+        patch_len: usize,
+        /// Start timestamp in nanoseconds
+        #[arg(long, default_value_t = 0)]
+        start_ts: i64,
+        /// End timestamp in nanoseconds
+        #[arg(long, default_value_t = i64::MAX)]
+        end_ts: i64,
+    },
     /// Run 1,000,000-row write throughput and vectorized sub-millisecond aggregation benchmark
     Bench {
         /// Number of events to ingest and query
@@ -54,6 +93,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Ingest {
+            dir,
+            symbol,
+            ts_ns,
+            value,
+            weight,
+            flags,
+        } => {
+            let mut engine = PrasastiEngine::open(&dir, 50_000)?;
+            let timestamp = ts_ns.unwrap_or_else(|| {
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos() as i64
+            });
+            engine.append(&symbol, timestamp, value, weight, flags)?;
+            engine.sync()?;
+            println!(
+                "{{\"status\":\"OK\",\"symbol\":\"{}\",\"ts_ns\":{},\"value\":{},\"weight\":{}}}",
+                symbol, timestamp, value, weight
+            );
+        }
+        Commands::ExtractPatches {
+            dir,
+            symbol,
+            patch_len,
+            start_ts,
+            end_ts,
+        } => {
+            let engine = PrasastiEngine::open(&dir, 50_000)?;
+            let patches = engine.extract_timesfm_patches(&symbol, start_ts, end_ts, patch_len)?;
+            println!("{}", serde_json::to_string(&patches)?);
+        }
         Commands::Bench { rows } => {
             let dir = tempdir()?;
             // Keep all 1,000,000 rows in the active SoA MemTable during the in-memory query SLA test

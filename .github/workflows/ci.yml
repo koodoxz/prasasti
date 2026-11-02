@@ -38,3 +38,4 @@ jobs:
 
       - name: Run 1,000,000-Row Write & Vectorized Query SLA Benchmark (Release)
         run: cargo run --release -p prasasti-cli -- bench --rows 1000000
+
