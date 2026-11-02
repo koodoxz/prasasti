@@ -1,0 +1,17 @@
+[package]
+name = "prasasti-query"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Vectorized time-series aggregations, OHLCV resampler, and TimesFM patch extractor"
+
+[dependencies]
+prasasti-wal.workspace = true
+prasasti-memtable.workspace = true
+prasasti-storage.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

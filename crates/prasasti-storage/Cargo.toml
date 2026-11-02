@@ -1,0 +1,17 @@
+[package]
+name = "prasasti-storage"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Immutable columnar .prs segments with Min-Max Zone Map pruning and StorageTierHook"
+
+[dependencies]
+prasasti-wal.workspace = true
+prasasti-memtable.workspace = true
+crc32fast.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

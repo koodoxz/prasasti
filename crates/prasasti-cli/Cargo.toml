@@ -1,0 +1,21 @@
+[package]
+name = "prasasti-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "CLI runner, 1M-event benchmark suite, and durability self-audit for Prasasti"
+
+[[bin]]
+name = "prasasti"
+path = "src/main.rs"
+
+[dependencies]
+prasasti-wal.workspace = true
+prasasti-memtable.workspace = true
+prasasti-storage.workspace = true
+prasasti-query.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true

@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/prasasti-wal",
+    "crates/prasasti-memtable",
+    "crates/prasasti-storage",
+    "crates/prasasti-query",
+    "crates/prasasti-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Nusantara Systems Engineering"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+prasasti-wal = { path = "crates/prasasti-wal" }
+prasasti-memtable = { path = "crates/prasasti-memtable" }
+prasasti-storage = { path = "crates/prasasti-storage" }
+prasasti-query = { path = "crates/prasasti-query" }
+crc32fast = "1.4"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+tempfile = "3.14"

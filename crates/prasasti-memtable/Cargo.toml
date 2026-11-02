@@ -1,0 +1,12 @@
+[package]
+name = "prasasti-memtable"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Columnar Structure-of-Arrays (SoA) MemTable and zero-allocation symbol interner"
+
+[dependencies]
+prasasti-wal.workspace = true
+thiserror.workspace = true
+serde.workspace = true
