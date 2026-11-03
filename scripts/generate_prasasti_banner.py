@@ -79,3 +79,4 @@ for val, label, col in badges:
 
 img.save(BANNER_PATH)
 print(f"[+] Successfully generated Prasasti banner: {BANNER_PATH}")
+
