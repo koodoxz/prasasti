@@ -209,11 +209,35 @@ prasasti bench --rows 1000000
 
 # Run 4-stage crash durability and analytical self-audit
 prasasti audit-self
+
+# Start native Model Context Protocol (MCP) JSON-RPC stdio server
+prasasti mcp
 ```
 
 ---
 
-### 3. Integration with Google TimesFM 2.5 & Autonomous AI Agents
+### 3. Model Context Protocol (MCP) Server for AI Agents (`prasasti mcp`)
+
+`prasasti` includes a zero-overhead JSON-RPC 2.0 stdio MCP server (`prasasti mcp`) designed for **Claude Code, Cursor, Copilot, Windsurf, and Antigravity**:
+
+- **`prasasti_record_telemetry`**: Appends agent tool invocations, latency (`ms`), and token consumption into the hardware-CRC32 WAL and columnar SoA store.
+- **`prasasti_check_circuit`**: Evaluates sliding-window telemetry in microseconds to trip a circuit breaker on runaway recursive tool loops (`LOOP_DETECTED`) or token budget exhaustion (`QUOTA_EXCEEDED`).
+- **`prasasti_audit_self`**: Runs the 4-stage durability and analytical self-audit directly from the agent host.
+
+```json
+{
+  "mcpServers": {
+    "prasasti": {
+      "command": "prasasti",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+---
+
+### 4. Integration with Google TimesFM 2.5 & Foundation Models
 
 `prasasti` eliminates the Python data-wrangling bottleneck when feeding time-series transformers:
 
