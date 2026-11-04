@@ -13,7 +13,9 @@ pub const WAL_RECORD_BYTES: usize = 36;
 pub enum WalError {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("crc32 mismatch at record offset {offset}: expected {expected:#010x}, got {actual:#010x}")]
+    #[error(
+        "crc32 mismatch at record offset {offset}: expected {expected:#010x}, got {actual:#010x}"
+    )]
     CrcMismatch {
         offset: u64,
         expected: u32,
@@ -154,9 +156,8 @@ impl WriteAheadLog {
         let mut records = Vec::with_capacity(bytes.len() / WAL_RECORD_BYTES);
 
         while offset + WAL_RECORD_BYTES <= bytes.len() {
-            let chunk: &[u8; WAL_RECORD_BYTES] = bytes[offset..offset + WAL_RECORD_BYTES]
-                .try_into()
-                .unwrap();
+            let chunk: &[u8; WAL_RECORD_BYTES] =
+                bytes[offset..offset + WAL_RECORD_BYTES].try_into().unwrap();
             match WalRecord::decode(chunk, offset as u64) {
                 Ok(rec) => {
                     records.push(rec);

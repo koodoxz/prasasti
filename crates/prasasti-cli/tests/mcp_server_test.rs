@@ -1,6 +1,6 @@
+use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
-use serde_json::{json, Value};
 use tempfile::tempdir;
 
 fn send_rpc(
@@ -11,7 +11,9 @@ fn send_rpc(
     writeln!(stdin, "{}", serde_json::to_string(req).unwrap()).unwrap();
     stdin.flush().unwrap();
     let mut line = String::new();
-    let n = reader.read_line(&mut line).expect("must read response line");
+    let n = reader
+        .read_line(&mut line)
+        .expect("must read response line");
     assert!(n > 0, "MCP server closed stdout unexpectedly");
     serde_json::from_str(&line).expect("response must be valid JSON-RPC")
 }
@@ -135,10 +137,8 @@ fn req_prs_mcp_01_end_to_end_stdio_telemetry_and_circuit_breaker() {
             }
         }),
     );
-    let allow_payload: Value = serde_json::from_str(
-        allow_resp["result"]["content"][0]["text"].as_str().unwrap(),
-    )
-    .unwrap();
+    let allow_payload: Value =
+        serde_json::from_str(allow_resp["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
     assert_eq!(allow_payload["status"], "ALLOW");
     assert_eq!(allow_payload["repeat_count"], 3);
     assert_eq!(allow_payload["total_tokens"], 3000.0);
@@ -162,10 +162,8 @@ fn req_prs_mcp_01_end_to_end_stdio_telemetry_and_circuit_breaker() {
             }
         }),
     );
-    let loop_payload: Value = serde_json::from_str(
-        loop_resp["result"]["content"][0]["text"].as_str().unwrap(),
-    )
-    .unwrap();
+    let loop_payload: Value =
+        serde_json::from_str(loop_resp["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
     assert_eq!(loop_payload["status"], "TRIP_CIRCUIT");
     assert_eq!(loop_payload["reason"], "LOOP_DETECTED");
 
@@ -188,10 +186,8 @@ fn req_prs_mcp_01_end_to_end_stdio_telemetry_and_circuit_breaker() {
             }
         }),
     );
-    let quota_payload: Value = serde_json::from_str(
-        quota_resp["result"]["content"][0]["text"].as_str().unwrap(),
-    )
-    .unwrap();
+    let quota_payload: Value =
+        serde_json::from_str(quota_resp["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
     assert_eq!(quota_payload["status"], "TRIP_CIRCUIT");
     assert_eq!(quota_payload["reason"], "QUOTA_EXCEEDED");
 

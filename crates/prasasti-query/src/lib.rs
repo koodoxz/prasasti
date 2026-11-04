@@ -65,7 +65,10 @@ pub struct PrasastiEngine {
 }
 
 impl PrasastiEngine {
-    pub fn open(data_dir: impl AsRef<Path>, max_memtable_rows: usize) -> Result<Self, PrasastiError> {
+    pub fn open(
+        data_dir: impl AsRef<Path>,
+        max_memtable_rows: usize,
+    ) -> Result<Self, PrasastiError> {
         if max_memtable_rows == 0 {
             return Err(PrasastiError::InvalidConfig(
                 "max_memtable_rows must be > 0".to_string(),

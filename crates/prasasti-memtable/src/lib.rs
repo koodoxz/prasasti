@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
-use std::collections::HashMap;
 use prasasti_wal::WalRecord;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SymbolInterner {
@@ -85,7 +85,9 @@ impl ColumnarMemTable {
         if let Some(&last_ts) = self.timestamps.last() {
             if rec.timestamp_ns < last_ts {
                 // Out-of-order insertion path: binary search insertion index and invalidate block summaries
-                let idx = self.timestamps.partition_point(|&ts| ts <= rec.timestamp_ns);
+                let idx = self
+                    .timestamps
+                    .partition_point(|&ts| ts <= rec.timestamp_ns);
                 self.timestamps.insert(idx, rec.timestamp_ns);
                 self.symbols.insert(idx, rec.symbol_id);
                 self.values.insert(idx, rec.value);

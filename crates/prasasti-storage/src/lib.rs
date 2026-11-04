@@ -57,9 +57,7 @@ impl SegmentStorage {
             return Err(StorageError::EmptySegment);
         };
         let row_count = table.len();
-        let path = dir
-            .as_ref()
-            .join(format!("seg_{segment_id:08}.prs"));
+        let path = dir.as_ref().join(format!("seg_{segment_id:08}.prs"));
 
         let payload_len = row_count * (8 + 4 + 8 + 8 + 4);
         let mut payload = Vec::with_capacity(payload_len);
@@ -110,7 +108,8 @@ impl SegmentStorage {
         let path_buf = path.as_ref().to_path_buf();
         let mut file = File::open(&path_buf)?;
         let mut buf = [0u8; PRS_HEADER_BYTES + 4];
-        file.read_exact(&mut buf).map_err(|_| StorageError::CorruptedSegment)?;
+        file.read_exact(&mut buf)
+            .map_err(|_| StorageError::CorruptedSegment)?;
 
         if buf[0..4] != PRS_MAGIC {
             return Err(StorageError::CorruptedSegment);

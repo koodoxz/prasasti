@@ -71,9 +71,7 @@ fn integration_crash_recovery_zone_pruning_and_timesfm_pipeline() {
     assert_eq!(sum.skipped_segments, 1);
 
     // Full range query [0, 30_000] -> 10 total records
-    let full = reopened
-        .aggregate_range(Some("XAUUSD"), 0, 30_000)
-        .unwrap();
+    let full = reopened.aggregate_range(Some("XAUUSD"), 0, 30_000).unwrap();
     assert_eq!(full.count, 10);
 
     // TimesFM patch extraction (patch_len = 5 -> 2 patches of 5 floats)
@@ -83,4 +81,3 @@ fn integration_crash_recovery_zone_pruning_and_timesfm_pipeline() {
     assert_eq!(patches.len(), 2);
     assert_eq!(patches[0].len(), 5);
 }
-
