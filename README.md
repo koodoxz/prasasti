@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/prasasti_banner.png" alt="Prasasti Columnar Engine" width="640">
+  <img src="docs/assets/prasasti_banner.jpg" alt="Prasasti Embedded Columnar Time-Series Engine" width="680">
 </p>
 
 # prasasti
