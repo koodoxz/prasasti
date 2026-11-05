@@ -11,7 +11,89 @@ use prasasti_query::{AggregationSummary, PrasastiEngine, PrasastiError};
 use prasasti_storage::{SegmentZoneMap, StorageTierHook};
 use prasasti_wal::WalRecord;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use tempfile::tempdir;
+
+pub const PUBLIC_LICENSE_COMMITMENT: [u8; 32] = [
+    248, 65, 58, 86, 161, 172, 112, 183, 4, 152, 198, 2, 22, 248, 234, 186, 80, 44, 6, 81, 22, 214,
+    227, 214, 231, 44, 131, 23, 227, 155, 126, 121,
+];
+
+pub const COMMUNITY_MCP_CALL_LIMIT: usize = 25;
+
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (&x, &y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+fn decode_hex(hex: &str) -> Result<Vec<u8>, String> {
+    if !hex.len().is_multiple_of(2) {
+        return Err("invalid hex length".to_string());
+    }
+    let mut out = Vec::with_capacity(hex.len() / 2);
+    let bytes = hex.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let hi = match bytes[i] {
+            b'0'..=b'9' => bytes[i] - b'0',
+            b'a'..=b'f' => bytes[i] - b'a' + 10,
+            b'A'..=b'F' => bytes[i] - b'A' + 10,
+            _ => return Err("invalid hex byte".to_string()),
+        };
+        let lo = match bytes[i + 1] {
+            b'0'..=b'9' => bytes[i + 1] - b'0',
+            b'a'..=b'f' => bytes[i + 1] - b'a' + 10,
+            b'A'..=b'F' => bytes[i + 1] - b'A' + 10,
+            _ => return Err("invalid hex byte".to_string()),
+        };
+        out.push((hi << 4) | lo);
+        i += 2;
+    }
+    Ok(out)
+}
+
+pub fn verify_prasasti_license(token: Option<&str>) -> Result<bool, String> {
+    let raw = match token {
+        None => return Ok(false),
+        Some(s) if s.trim().is_empty() => return Ok(false),
+        Some(s) => s.trim(),
+    };
+    let rest = raw
+        .strip_prefix("NSTR-PRO-V1-")
+        .ok_or_else(|| "invalid license prefix".to_string())?;
+    let (key_hex, tag_hex) = rest
+        .split_once('-')
+        .ok_or_else(|| "invalid license format".to_string())?;
+    if key_hex.len() != 64 || tag_hex.len() != 16 {
+        return Err("invalid license segment length".to_string());
+    }
+    let key_bytes = decode_hex(key_hex)?;
+    let tag_bytes = decode_hex(tag_hex)?;
+
+    let mut tag_hasher = Sha256::new();
+    tag_hasher.update(b"NUSANTARA-LICENSE-TAG-V1:");
+    tag_hasher.update(&key_bytes);
+    let expected_tag = tag_hasher.finalize();
+    if !constant_time_eq(&tag_bytes, &expected_tag[..8]) {
+        return Err("license checksum mismatch".to_string());
+    }
+
+    let mut commit_hasher = Sha256::new();
+    commit_hasher.update(b"NUSANTARA-PAGAR-COMMITMENT-V1:");
+    commit_hasher.update(&key_bytes);
+    let actual_commit = commit_hasher.finalize();
+    if !constant_time_eq(&actual_commit, &PUBLIC_LICENSE_COMMITMENT) {
+        return Err("unauthorized master key commitment".to_string());
+    }
+
+    Ok(true)
+}
 
 #[derive(Parser)]
 #[command(
@@ -20,6 +102,10 @@ use tempfile::tempdir;
     about = "Zero-allocation embedded columnar time-series & telemetry engine"
 )]
 struct Cli {
+    /// Optional Pro License Key (overrides PRASASTI_LICENSE_KEY environment variable)
+    #[arg(long, global = true)]
+    license_key: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -298,6 +384,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", serde_json::to_string_pretty(&summary)?);
         }
         Commands::Mcp => {
+            let token = cli
+                .license_key
+                .or_else(|| std::env::var("PRASASTI_LICENSE_KEY").ok());
+            let is_pro = verify_prasasti_license(token.as_deref())?;
+            let tier_name = if is_pro {
+                "ENTERPRISE_PRO_V1"
+            } else {
+                "COMMUNITY_EVAL"
+            };
+            let mut mcp_calls_count = 0usize;
             let stdin = io::stdin();
             let mut out = io::stdout();
 
@@ -325,7 +421,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 },
                                 "serverInfo": {
                                     "name": "prasasti-mcp-server",
-                                    "version": env!("CARGO_PKG_VERSION")
+                                    "version": env!("CARGO_PKG_VERSION"),
+                                    "tier": tier_name
                                 }
                             }
                         });
@@ -422,6 +519,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         out.flush()?;
                     }
                     "tools/call" => {
+                        if !is_pro && mcp_calls_count >= COMMUNITY_MCP_CALL_LIMIT {
+                            let resp = json!({
+                                "jsonrpc": "2.0",
+                                "id": id,
+                                "result": {
+                                    "isError": true,
+                                    "content": [{
+                                        "type": "text",
+                                        "text": format!("Prasasti Community Evaluation quota exceeded ({}/{}). Upgrade to Prasasti Agent Sentinel Pro on Agensi.io.", mcp_calls_count, COMMUNITY_MCP_CALL_LIMIT)
+                                    }]
+                                }
+                            });
+                            writeln!(out, "{}", serde_json::to_string(&resp)?)?;
+                            out.flush()?;
+                            continue;
+                        }
+                        mcp_calls_count += 1;
+
                         let params = req.get("params").cloned().unwrap_or(Value::Null);
                         let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
                         let args = params.get("arguments").cloned().unwrap_or(Value::Null);
@@ -643,4 +758,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_PRO_TOKEN: &str =
+        "NSTR-PRO-V1-8F4B2E91C7A64D305E129B87F360A4C1D9E87254106BC3F9A82D47E16B53C09A-3B3B5F6ABB8571C2";
+
+    #[test]
+    fn verifies_valid_pro_token_and_rejects_forged_tokens() {
+        assert!(!verify_prasasti_license(None).unwrap());
+        assert!(verify_prasasti_license(Some(VALID_PRO_TOKEN)).unwrap());
+
+        let tampered =
+            "NSTR-PRO-V1-8F4B2E91C7A64D305E129B87F360A4C1D9E87254106BC3F9A82D47E16B53C09A-3B3B5F6ABB8571C3";
+        assert!(verify_prasasti_license(Some(tampered)).is_err());
+    }
 }
