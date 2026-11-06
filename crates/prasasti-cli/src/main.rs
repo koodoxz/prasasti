@@ -468,6 +468,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                 }
                                             },
                                             "required": ["data_dir", "symbol", "latency_ms"]
+                                        },
+                                        "annotations": {
+                                            "readOnlyHint": false,
+                                            "destructiveHint": false,
+                                            "idempotentHint": false,
+                                            "openWorldHint": false
                                         }
                                     },
                                     {
@@ -502,6 +508,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                 }
                                             },
                                             "required": ["data_dir", "symbol"]
+                                        },
+                                        "annotations": {
+                                            "readOnlyHint": true,
+                                            "destructiveHint": false,
+                                            "idempotentHint": true,
+                                            "openWorldHint": false
                                         }
                                     },
                                     {
@@ -510,6 +522,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         "inputSchema": {
                                             "type": "object",
                                             "properties": {}
+                                        },
+                                        "annotations": {
+                                            "readOnlyHint": true,
+                                            "destructiveHint": false,
+                                            "idempotentHint": true,
+                                            "openWorldHint": false
                                         }
                                     }
                                 ]
@@ -763,6 +781,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_prasasti_tools_annotations_and_schema() {
+        let tools_json = json!([
+            {
+                "name": "prasasti_record_telemetry",
+                "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false }
+            },
+            {
+                "name": "prasasti_check_circuit",
+                "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
+            },
+            {
+                "name": "prasasti_audit_self",
+                "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
+            }
+        ]);
+        let tools = tools_json.as_array().unwrap();
+        assert_eq!(tools.len(), 3);
+        for t in tools {
+            let ann = t.get("annotations").unwrap();
+            assert!(ann.get("readOnlyHint").unwrap().is_boolean());
+            assert!(ann.get("destructiveHint").unwrap().is_boolean());
+            assert!(ann.get("idempotentHint").unwrap().is_boolean());
+            assert!(ann.get("openWorldHint").unwrap().is_boolean());
+        }
+    }
 
     const VALID_PRO_TOKEN: &str =
         "NSTR-PRO-V1-8F4B2E91C7A64D305E129B87F360A4C1D9E87254106BC3F9A82D47E16B53C09A-3B3B5F6ABB8571C2";
